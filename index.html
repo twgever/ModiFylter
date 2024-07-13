@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-3.614.0.min.js"></script>
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="https://glitch.com/favicon.ico" />
+
+    <title>ModiFylter</title>
+
+    <link rel="stylesheet" href="./style.css" />
+
+    <script src="./script.js" defer></script>
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="content" role="main">
+        
+        <h1 class="title">ModiFylter</h1>
+        
+        <br><br>
+        
+        <p>
+          Welcome to ModiFylter. We provide you a moderate variety of filters which you can apply to any image you want! <br>
+        </p>
+        
+        <p>
+          Just upload the image you'd like to modify and click on "ModiFy"to apply the filter you selected!
+        </p>
+        <br>
+        <rowdiv>
+          
+          <label for="actual-btn" style="cursor: pointer;" id="uploadButton">
+            Upload image
+          </label>
+          <input type="file" id="actual-btn"  onchange="loadFile(event)" accept=".png,.jpg" hidden/>
+          <br>
+          
+          <div class="dropdown" id="dropdownFilter">
+            <button class="dropbtn">Filter selection</button>
+              <div class="dropdown-content">
+                <selection text="Black &amp; white">Black &amp; white</selection>
+                <selection text="Grayscale">Grayscale</selection>
+
+              </div>
+          </div>
+        </rowdiv>
+        
+        <img id="original" width="350" style="border:5px solid #000000; padding:3px; margin:4px" hidden/>
+        
+        <button style="cursor: pointer;" id="modiFyBtn" onclick="filterify()" hidden>
+          ModiFy
+        </button>
+        
+        <img id="filtered" width="500" style="border:5px solid #000000; padding:3px; margin:4px" hidden/>
+
+        </div>
+      </div>
+
+  </body>
+</html>
