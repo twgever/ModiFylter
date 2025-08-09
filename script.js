@@ -1,5 +1,11 @@
 console.log("Page loaded succesfully");
 
+// amazonq-ignore-next-line
+
+const bucketName = "modifylterbucket"
+const identityPoolID = 'us-east-1:3ea70217-9f6a-4835-8008-d81168f24b9c'
+const region = 'us-east-1'
+
 var imageSelected=false;
 var filterSelected=false;
 var filter = "ciao"
@@ -8,31 +14,46 @@ var downloadBtn = document.getElementById("downloadBtn")
 var fileSize = 0
 var file =0
 var imageJSON
+var userID
+var fileName
+var extension
+var s3
+var userIDReady = 0
 
+//initial config for the identity pool
 AWS.config.update({
-  region: 'us-east-1',
+  region: region,
+  apiVersion: 'latest',
   credentials:  new AWS.CognitoIdentityCredentials({
-    IdentityPoolId: 'us-east-1:3ea70217-9f6a-4835-8008-d81168f24b9c'
+    IdentityPoolId: identityPoolID
   })
 });
 
+//fetching credentals from identity pool
 AWS.config.credentials.get(function(err) {
   if (err) {
     console.error("Error fetching credentials:", err);
     return;
   }
   console.log("Cognito Identity Id:", AWS.config.credentials.identityId);
+  userID = AWS.config.credentials.identityId
+  s3 = new AWS.S3();
+  userIDReady = 1
 });
 
-// function to load the loaded image on screen
+// function to load the loaded image on screen, extract the name and the extension of the file
+// amazonq-ignore-next-line
 var loadFile = function(event) {
 
   var image = document.getElementById("original");
 
   // Validate file extension
-  const fileName = event.target.files[0].name.toLowerCase();
+  fileName  = event.target.files[0].name.toLowerCase();
+  extension = fileName.substring( fileName.lastIndexOf(".")+1 );
   if (!fileName.endsWith('.png') && !fileName.endsWith('.jpg') && !fileName.endsWith('.jpeg')) {
     alert('Only .png and .jpg files are allowed!');
+
+    //delete previous selections so that user cannot load empty image
     event.target.value = '';
     imageSelected=false;
     file = 0
@@ -47,15 +68,16 @@ var loadFile = function(event) {
   image.hidden=false
   imageSelected=true;
   downloadBtn.hidden=true
-  if(filterSelected & imageSelected){
+  if(filterSelected & imageSelected & userIDReady){
     modiFyBtn.hidden=false
     processImage();
   }
 };
 
-// Function to process image
+// Function to process image and create the object to put in the s3 bucket
 var processImage = function() {
   var reader = new FileReader();
+  alert(extension)
   reader.onload = function(e) {
     var dataURL = e.target.result;
     var base64String = dataURL.split(',')[1];
@@ -64,9 +86,10 @@ var processImage = function() {
       size: file.size,
       type: file.type,
       base64: base64String,
-      chosenFilter: filter
+      chosenFilter: filter,
+      extension: extension
     };
-    console.log(JSON.stringify(imageJSON, null, 2));
+    //console.log(JSON.stringify(imageJSON, null, 2));
   };
   reader.readAsDataURL(file);
 };
@@ -79,12 +102,14 @@ if (btn) { // Detect clicks on the button
 }
 
 //grants the ability to change the selected filter to all selections
+const filterBtn = document.querySelector(".dropBtn");
 const selections =document.querySelectorAll('selection')
 selections.forEach(function(selection) {
     selection.addEventListener('click', function() {
       filter = this.innerText;
+      filterBtn.innerText = filter
       filterSelected=true;
-        if(filterSelected & imageSelected){
+        if(filterSelected & imageSelected & userIDReady){
 
           modiFyBtn.hidden=false
           processImage();
@@ -93,7 +118,7 @@ selections.forEach(function(selection) {
     });
 });
 
-//AWS lambda invocation
+//AWS lambda invocation -> no more, not it is s3 upload and subscription to bucket!
 
 const filterify= async function(){
   const image = document.getElementById('filtered');
@@ -106,30 +131,16 @@ const filterify= async function(){
     return;
   }
 
-  const input = { // InvocationRequest
-    FunctionName: "arn:aws:lambda:us-east-1:058264230330:function:filterify",
-    InvocationType:"RequestResponse",
-    LogType: "Tail",
-    Payload: JSON.stringify(imageJSON),
-  };
-  
-  try {
-    const data = await lambda.invoke(input).promise();
-    const response = JSON.parse(data.Payload);
-    console.log(response)
-    const processedImageBase64 = response.body.processed_image_base64; 
-    var format = response.body.format;
-    format = format.toLowerCase();
-  
-      // Create the data URL for the image
-    const dataURL = `data:image/${format};base64,${processedImageBase64}`;
-    image.src = dataURL;
-    image.hidden = false;
-    } catch (err) {
-      console.error("Error invoking Lambda: ", err.code, err.message, err);
-    }
+  //uploading image to s3 bucket
+  var s3UploadParams = {Bucket: bucketName,
+                        Key: userID + "/" + fileName,
+                        Body: JSON.stringify(imageJSON)
+                      };
 
-    downloadBtn.hidden=false
+  s3.upload(s3UploadParams, function(err, data) {
+    console.log(err, data);
+    });
+    
 }
 
 //trigger download of fie upon click on download button
