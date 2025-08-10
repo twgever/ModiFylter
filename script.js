@@ -188,8 +188,11 @@ var hideEverything = function(){
 credentialsObtained.then(() => {
   const socket = new WebSocket("wss://2x7ihayome.execute-api.us-east-1.amazonaws.com/production/");
   // Event handler for when the connection is established
+  
   socket.onopen = () => {
+
     console.log("WebSocket connection established!");
+
     registered = new Promise((resolve, reject) => {
       try{
         socket.send(JSON.stringify({ action: "register", userID: userID }));
@@ -199,6 +202,7 @@ credentialsObtained.then(() => {
         reject(err)
       } 
     });
+    
     registered.then(() => {
       console.log("Sent registration message")
       webSocketEstabilished = 1;
