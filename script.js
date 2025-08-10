@@ -8,17 +8,18 @@ const region = 'us-east-1'
 
 var imageSelected=false;
 var filterSelected=false;
-var filter = "ciao"
-var modiFyBtn = document.getElementById("modiFyBtn")
-var downloadBtn = document.getElementById("downloadBtn")
-var fileSize = 0
-var file =0
-var imageJSON
-var userID
-var fileName
-var extension
-var s3
-var userIDReady = 0
+var filter = "ciao";
+var modiFyBtn = document.getElementById("modiFyBtn");
+var downloadBtn = document.getElementById("downloadBtn");
+var fileSize = 0;
+var file =0;
+var imageJSON;
+var userID;
+var fileName;
+var extension;
+var s3;
+var userIDReady = 0;
+var webSocketEstabilished = 0;
 
 //initial config for the identity pool
 AWS.config.update({
@@ -30,16 +31,20 @@ AWS.config.update({
 });
 
 //fetching credentals from identity pool
-AWS.config.credentials.get(function(err) {
+credentialsObtained = new Promise((resolve, reject) => {
+  AWS.config.credentials.get(function(err) {
   if (err) {
     console.error("Error fetching credentials:", err);
-    return;
+    reject("Error fetching credentials. Please try reloading the page.");
   }
   console.log("Cognito Identity Id:", AWS.config.credentials.identityId);
   userID = AWS.config.credentials.identityId
   s3 = new AWS.S3();
   userIDReady = 1
-});
+  resolve("Credentials fetched successfully!");
+  });
+})
+
 
 // function to load the loaded image on screen, extract the name and the extension of the file
 // amazonq-ignore-next-line
@@ -68,9 +73,12 @@ var loadFile = function(event) {
   image.hidden=false
   imageSelected=true;
   downloadBtn.hidden=true
-  if(filterSelected & imageSelected & userIDReady){
+  if(filterSelected & imageSelected & webSocketEstabilished){
     modiFyBtn.hidden=false
     processImage();
+  }
+  if( !webSocketEstabilished ){
+    alert("The connection has yet to be estabilished. Please reloadthe page if the problem persists.")
   }
 };
 
@@ -109,11 +117,14 @@ selections.forEach(function(selection) {
       filter = this.innerText;
       filterBtn.innerText = filter
       filterSelected=true;
-        if(filterSelected & imageSelected & userIDReady){
+        if(filterSelected & imageSelected & webSocketEstabilished){
 
           modiFyBtn.hidden=false
           processImage();
           
+        }
+        if( !webSocketEstabilished ){
+          alert("The connection has yet to be estabilished. Please reloadthe page if the problem persists.")
         }
     });
 });
@@ -171,6 +182,53 @@ var hideEverything = function(){
   
   return
 }
+
+//Web Socket handling 
+
+credentialsObtained.then(() => {
+  const socket = new WebSocket("wss://2x7ihayome.execute-api.us-east-1.amazonaws.com/production/");
+  // Event handler for when the connection is established
+  socket.onopen = () => {
+    console.log("WebSocket connection established!");
+    registered = new Promise((resolve, reject) => {
+      try{
+        socket.send(JSON.stringify({ action: "register", userID: userID }));
+        resolve("Registration message sent")
+      }
+      catch(err){
+        reject(err)
+      } 
+    });
+    registered.then(() => {
+      console.log("Sent registration message")
+      webSocketEstabilished = 1;
+    })
+    .catch((error) => {
+      console.error("Error sending registration message:", error);
+    });
+  };
+
+  // Event handler for when a message is received from the server
+  socket.onmessage = (event) => {
+   const message = event.data;
+    console.log(`Received: ${message}`);
+  };
+
+  // Event handler for when an error occurs with the WebSocket
+  socket.onerror = (error) => {
+    console.log(`WebSocket error: ${error}`);
+  };
+
+  socket.onclose = (event) => {
+    console.log("WebSocket connection closed.");
+  };
+
+})
+.catch((error) => {
+  console.error("Error fetching credentials:", error);
+});
+
+
   
 
 
