@@ -37,14 +37,20 @@ to this section's matching END comment to see page-specific styles.
 /* Import fonts */
 @font-face {
   font-family: HK Grotesk;
-  src: url("https://cdn.glitch.me/605e2a51-d45f-4d87-a285-9410ad350515%2FHKGrotesk-Regular.otf?v=1603136326027")
+  src: url('resources/American Captain.otf')
     format("opentype");
 }
 @font-face {
   font-family: HK Grotesk;
   font-weight: bold;
-  src: url("https://cdn.glitch.me/605e2a51-d45f-4d87-a285-9410ad350515%2FHKGrotesk-Bold.otf?v=1603136323437")
+  src: url('resources/American Captain.otf')
     format("opentype");
+}
+
+/* paragraphs */
+p {
+  font-size: 21px;
+  text-align: center;
 }
 
 /* Our remix on glitch button */
@@ -156,7 +162,7 @@ body {
 button,
 input {
   font-family: inherit;
-  font-size: 100%;
+  font-size: 120%;
   background: #FFFFFF;
   border: 1px solid #000000;
   box-sizing: border-box;
@@ -167,7 +173,7 @@ input {
 
 label {
   font-family: inherit;
-  font-size: 100%;
+  font-size: 120%;
   background: #FFFFFF;
   border: 1px solid #000000;
   box-sizing: border-box;
@@ -202,7 +208,7 @@ h2 {
   box-sizing: border-box;
   border-radius: 4px;
   padding: 0.5rem 1rem;
-  font-size: 16px;
+  font-size: 120%;
 }
 
 /* The container <div> - needed to position the dropdown content */

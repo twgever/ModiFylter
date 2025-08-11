@@ -5,6 +5,7 @@ console.log("Page loaded succesfully");
 const bucketName = "modifylterbucket"
 const identityPoolID = 'us-east-1:3ea70217-9f6a-4835-8008-d81168f24b9c'
 const region = 'us-east-1'
+const outputBucketName = 'modifylteroutput'
 
 var imageSelected=false;
 var filterSelected=false;
@@ -85,7 +86,6 @@ var loadFile = function(event) {
 // Function to process image and create the object to put in the s3 bucket
 var processImage = function() {
   var reader = new FileReader();
-  alert(extension)
   reader.onload = function(e) {
     var dataURL = e.target.result;
     var base64String = dataURL.split(',')[1];
@@ -95,7 +95,8 @@ var processImage = function() {
       type: file.type,
       base64: base64String,
       chosenFilter: filter,
-      extension: extension
+      extension: extension,
+      userID: userID
     };
     //console.log(JSON.stringify(imageJSON, null, 2));
   };
@@ -120,6 +121,7 @@ selections.forEach(function(selection) {
         if(filterSelected & imageSelected & webSocketEstabilished){
 
           modiFyBtn.hidden=false
+          downloadBtn.hidden=true
           processImage();
           
         }
@@ -192,6 +194,7 @@ credentialsObtained.then(() => {
   socket.onopen = () => {
 
     console.log("WebSocket connection established!");
+    console.log(socket);
 
     registered = new Promise((resolve, reject) => {
       try{
@@ -214,8 +217,45 @@ credentialsObtained.then(() => {
 
   // Event handler for when a message is received from the server
   socket.onmessage = (event) => {
+
    const message = event.data;
-    console.log(`Received: ${message}`);
+
+    if ( message == "UltraSecretPhraseToTellYouThatTheImageIsReadyYay") {
+      console.log(`Image is ready!`);
+
+      const filtered = document.getElementById('filtered')
+      
+      //retrive the image from the bucket and delete it
+      //should make this a promise next time, first thing, and then 
+      //see what the asnwer isgonna be.
+      var s3Response = s3.getObject({Bucket: outputBucketName,
+                                     Key: userID + "/" + fileName}, 
+                                     function(err, data) {
+        if (err) {
+          console.error("Error fetching filtered image:", err);
+          return;
+        }
+
+        filtered.src = "data:image/png;base64," + data.Body.toString('base64');
+        filtered.hidden = false;
+        filterify.hidden = false;
+      });
+
+      downloadBtn.hidden=false
+      s3.deleteObject({Bucket: outputBucketName,
+                        Key: userID + "/" + fileName},
+                        function(err, data) {
+        if (err) {
+          console.error("Error deleting filtered image:", err);
+          return;
+        }
+      });
+
+    }
+    else{
+      console.log("Received an unexpected message. Please reload the page.")
+    }
+
   };
 
   // Event handler for when an error occurs with the WebSocket
