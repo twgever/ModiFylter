@@ -240,7 +240,7 @@ h2 {
 .dropdown-content selection:hover {background-color: #dddddd;}
 
 /* Show the dropdown menu on hover */
-.dropdown:hover .dropdown-content {display: block;}
+.dropdown.enabled:hover .dropdown-content {display: block;}
 
 /* Change the background color of the dropdown button when the dropdown content is shown */
 .dropdown:hover .dropbtn {background-color: #cdcdcd;}

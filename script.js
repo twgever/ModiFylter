@@ -12,7 +12,11 @@ var filterSelected=false;
 var filter = "ciao";
 var modiFyBtn = document.getElementById("modiFyBtn");
 var downloadBtn = document.getElementById("downloadBtn");
+var dropBtn = document.getElementById("dropBtn")
+var dropdownMenu = document.getElementById("dropdownFilter");
 var filteredImage = document.getElementById("filtered");
+var actualUploadButton = document.getElementById("actual-btn")
+var uploadButton = document.getElementById("uploadButton")
 var fileSize = 0;
 var file =0;
 var imageJSON;
@@ -23,6 +27,7 @@ var s3;
 var userIDReady = 0;
 var webSocketEstabilished = 0;
 var imageDownloadable = 0;
+var modifyClicked = 0;
 
 //initial config for the identity pool
 AWS.config.update({
@@ -106,7 +111,7 @@ var processImage = function() {
   reader.readAsDataURL(file);
 };
 
-const uploadBtn = document.querySelector(".uploadBtn"); // Get the button from the page
+const uploadBtn = document.querySelector("uploadBtn"); // Get the button from the page
 if (uploadBtn) { // Detect clicks on the button
   uploadBtn.onclick = function () {
     uploadBtn.classList.toggle("dipped");
@@ -143,11 +148,14 @@ selections.forEach(function(selection) {
 
 const filterify= async function(){
 
+  disableButtons();
+  downloadBtn.hidden = true;
   filteredImage.hidden = true;
   var lambda = new AWS.Lambda();
 
   if (!imageJSON) {
     console.error("Image data is not ready.");
+    enableButtons();
     return;
   }
 
@@ -182,13 +190,30 @@ const download = function(){
 var hideEverything = function(){
   var image = document.getElementById("original");
   var filtered = document.getElementById("filtered");
-  var filterifyBtn = document.getElementById("filterify");
 
   image.hidden=true;
   filtered.hidden=true;
-  filterifyBtn.hidden=true;
+  modiFyBtn.hidden=true;
   downloadBtn.hidden=true;
   
+  return
+}
+
+var disableButtons = function(){
+  modiFyBtn.disabled=true;
+  dropBtn.disabled=true;
+  actualUploadButton.disabled=true;
+  dropdownMenu.classList.remove("enabled");
+  uploadButton.style.color = "gray";
+  return
+}
+
+var enableButtons = function(){
+  modiFyBtn.disabled=false;
+  dropBtn.disabled=false;
+  actualUploadButton.disabled=false;
+  dropdownMenu.classList.add("enabled");
+  uploadButton.style.color = "black";
   return
 }
 
@@ -235,6 +260,7 @@ credentialsObtained.then(() => {
                                      Key: userID + "/" + fileName}, 
         function(err, data) {
           if (err) {
+            enableButtons();
             console.error("Error fetching filtered image:", err);
             return;
           }
@@ -248,6 +274,7 @@ credentialsObtained.then(() => {
 
           filtered.hidden = false;
           downloadBtn.hidden=false
+          enableButtons();
 
           s3.deleteObject({Bucket: outputBucketName,
                         Key: userID + "/" + fileName},

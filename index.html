@@ -44,7 +44,7 @@
           <input type="file" id="actual-btn"  onchange="loadFile(event)" accept=".png,.jpg" hidden/>
           <br>
           
-          <div class="dropdown" id="dropdownFilter">
+          <div class="dropdown enabled" id="dropdownFilter">
             <button class="dropBtn" id="dropBtn"> Filter selection</button>
               <div class="dropdown-content">
                 <selection text="Black &amp; white">Black &amp; white</selection>
@@ -60,7 +60,7 @@
           ModiFy
         </button>
         
-        <img id="filtered" width="700" style="border:5px solid #000000; padding:3px; margin:4px" hidden/>
+        <img id="filtered" width="500" style="border:5px solid #000000; padding:3px; margin:4px" hidden/>
 
         <button style="cursor: pointer;" id="downloadBtn" data-download="filtered" onclick="download()" hidden>
           Download
