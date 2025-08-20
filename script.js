@@ -12,6 +12,7 @@ var filterSelected=false;
 var filter = "ciao";
 var modiFyBtn = document.getElementById("modiFyBtn");
 var downloadBtn = document.getElementById("downloadBtn");
+var filteredImage = document.getElementById("filtered");
 var fileSize = 0;
 var file =0;
 var imageJSON;
@@ -21,6 +22,7 @@ var extension;
 var s3;
 var userIDReady = 0;
 var webSocketEstabilished = 0;
+var imageDownloadable = 0;
 
 //initial config for the identity pool
 AWS.config.update({
@@ -62,8 +64,8 @@ var loadFile = function(event) {
     //delete previous selections so that user cannot load empty image
     event.target.value = '';
     imageSelected=false;
-    file = 0
-    hideEverything()
+    file = 0;
+    hideEverything();
     return;
   }
   
@@ -72,6 +74,7 @@ var loadFile = function(event) {
   fileSize=file.size
 
   image.hidden=false
+  filteredImage.hidden = true;
   imageSelected=true;
   downloadBtn.hidden=true
   if(filterSelected & imageSelected & webSocketEstabilished){
@@ -79,7 +82,7 @@ var loadFile = function(event) {
     processImage();
   }
   if( !webSocketEstabilished ){
-    alert("The connection has yet to be estabilished. Please reloadthe page if the problem persists.")
+    alert("The connection has yet to be estabilished. Please reload the page if the problem persists.")
   }
 };
 
@@ -103,10 +106,11 @@ var processImage = function() {
   reader.readAsDataURL(file);
 };
 
-const btn = document.querySelector(".uploadBtn"); // Get the button from the page
-if (btn) { // Detect clicks on the button
-  btn.onclick = function () {
-    btn.classList.toggle("dipped");
+const uploadBtn = document.querySelector(".uploadBtn"); // Get the button from the page
+if (uploadBtn) { // Detect clicks on the button
+  uploadBtn.onclick = function () {
+    uploadBtn.classList.toggle("dipped");
+    imageDownloadable = 0;
   };
 }
 
@@ -118,6 +122,10 @@ selections.forEach(function(selection) {
       filter = this.innerText;
       filterBtn.innerText = filter
       filterSelected=true;
+      imageDownloadable = 0;
+
+      filteredImage.hidden = true;
+
         if(filterSelected & imageSelected & webSocketEstabilished){
 
           modiFyBtn.hidden=false
@@ -126,7 +134,7 @@ selections.forEach(function(selection) {
           
         }
         if( !webSocketEstabilished ){
-          alert("The connection has yet to be estabilished. Please reloadthe page if the problem persists.")
+          alert("The connection has yet to be estabilished. Please reload the page if the problem persists.")
         }
     });
 });
@@ -134,9 +142,8 @@ selections.forEach(function(selection) {
 //AWS lambda invocation -> no more, not it is s3 upload and subscription to bucket!
 
 const filterify= async function(){
-  const image = document.getElementById('filtered');
 
-  image.hidden = true;
+  filteredImage.hidden = true;
   var lambda = new AWS.Lambda();
 
   if (!imageJSON) {
@@ -175,11 +182,11 @@ const download = function(){
 var hideEverything = function(){
   var image = document.getElementById("original");
   var filtered = document.getElementById("filtered");
-  var filterify = document.getElementById("filterify");
+  var filterifyBtn = document.getElementById("filterify");
 
   image.hidden=true;
   filtered.hidden=true;
-  filterify.hidden=true;
+  filterifyBtn.hidden=true;
   downloadBtn.hidden=true;
   
   return
@@ -194,7 +201,6 @@ credentialsObtained.then(() => {
   socket.onopen = () => {
 
     console.log("WebSocket connection established!");
-    console.log(socket);
 
     registered = new Promise((resolve, reject) => {
       try{
@@ -207,7 +213,7 @@ credentialsObtained.then(() => {
     });
     
     registered.then(() => {
-      console.log("Sent registration message")
+      console.log("Registration message sent.")
       webSocketEstabilished = 1;
     })
     .catch((error) => {
@@ -220,35 +226,38 @@ credentialsObtained.then(() => {
 
    const message = event.data;
 
-    if ( message == "UltraSecretPhraseToTellYouThatTheImageIsReadyYay") {
-      console.log(`Image is ready!`);
+    if ( message === "\"UltraSecretPhraseToTellYouThatTheImageIsReadyYay\"") {
 
       const filtered = document.getElementById('filtered')
       
       //retrive the image from the bucket and delete it
-      //should make this a promise next time, first thing, and then 
-      //see what the asnwer isgonna be.
       var s3Response = s3.getObject({Bucket: outputBucketName,
                                      Key: userID + "/" + fileName}, 
-                                     function(err, data) {
-        if (err) {
-          console.error("Error fetching filtered image:", err);
-          return;
-        }
+        function(err, data) {
+          if (err) {
+            console.error("Error fetching filtered image:", err);
+            return;
+          }
+          
+          //Decode from uint8array to base64
+          var payload = JSON.parse(new TextDecoder('utf8')
+                                    .decode(data.Body));
 
-        filtered.src = "data:image/png;base64," + data.Body.toString('base64');
-        filtered.hidden = false;
-        filterify.hidden = false;
-      });
+          imageDownloadable = 1;
+          filtered.src = "data:image/"+extension+";base64," + payload["processed_image_base64"];
 
-      downloadBtn.hidden=false
-      s3.deleteObject({Bucket: outputBucketName,
+          filtered.hidden = false;
+          downloadBtn.hidden=false
+
+          s3.deleteObject({Bucket: outputBucketName,
                         Key: userID + "/" + fileName},
                         function(err, data) {
-        if (err) {
-          console.error("Error deleting filtered image:", err);
-          return;
-        }
+          if (err) {
+            console.error("Error deleting filtered image:", err);
+            return;
+          }
+        });
+        console.log(`Image is ready!`);
       });
 
     }
