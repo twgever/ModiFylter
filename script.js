@@ -28,6 +28,8 @@ var userIDReady = 0;
 var webSocketEstabilished = 0;
 var imageDownloadable = 0;
 var modifyClicked = 0;
+var startingTime = 0;
+var downloadFileName = 0;
 
 //initial config for the identity pool
 AWS.config.update({
@@ -147,6 +149,8 @@ selections.forEach(function(selection) {
 //AWS lambda invocation -> no more, not it is s3 upload and subscription to bucket!
 
 const filterify= async function(){
+  startingTime = Date.now()
+  //console.log("tima at modify click is: ", startingTime); ////////
 
   disableButtons();
   downloadBtn.hidden = true;
@@ -159,6 +163,8 @@ const filterify= async function(){
     return;
   }
 
+   //console.log("tima before upload is: ", Date.now() -startingTime);
+
   //uploading image to s3 bucket
   var s3UploadParams = {Bucket: bucketName,
                         Key: userID + "/" + fileName,
@@ -167,18 +173,20 @@ const filterify= async function(){
 
   s3.upload(s3UploadParams, function(err, data) {
     console.log(err, data);
+    //console.log("tima after upload is: ", Date.now()-startingTime) 
     });
     
 }
 
-//trigger download of fie upon click on download button
+//trigger download of file upon click on download button
 const download = function(){
 
   const image = document.getElementById('filtered');
   const a = document.createElement('a');
 
   a.href = image.src;
-  a.download = filter.replace(" ","_") + "_" + file.name
+  downloadFileName = filter.replace(" ","_") + "_" + file.name
+  a.download = downloadFileName;
   a.style.display = "none";
   document.body.appendChild(a);
   a.click();
@@ -208,8 +216,24 @@ var disableButtons = function(){
   return
 }
 
+var disableStartButtons = function(){
+  dropBtn.disabled=true;
+  actualUploadButton.disabled=true;
+  dropdownMenu.classList.remove("enabled");
+  uploadButton.style.color = "gray";
+  return
+}
+
 var enableButtons = function(){
   modiFyBtn.disabled=false;
+  dropBtn.disabled=false;
+  actualUploadButton.disabled=false;
+  dropdownMenu.classList.add("enabled");
+  uploadButton.style.color = "black";
+  return
+}
+
+var enableStartButtons = function(){
   dropBtn.disabled=false;
   actualUploadButton.disabled=false;
   dropdownMenu.classList.add("enabled");
@@ -250,6 +274,7 @@ credentialsObtained.then(() => {
   socket.onmessage = (event) => {
 
    const message = event.data;
+   //console.log("time at notification reception is: ", Date.now()-startingTime); 
 
     if ( message === "\"UltraSecretPhraseToTellYouThatTheImageIsReadyYay\"") {
 
@@ -266,6 +291,7 @@ credentialsObtained.then(() => {
           }
           
           //Decode from uint8array to base64
+          //console.log("time at s3 Response is: ", Date.now()-startingTime);
           var payload = JSON.parse(new TextDecoder('utf8')
                                     .decode(data.Body));
 
@@ -276,6 +302,7 @@ credentialsObtained.then(() => {
           downloadBtn.hidden=false
           enableButtons();
 
+          //console.log("time at s3 deletion request is: ", Date.now()-startingTime);
           s3.deleteObject({Bucket: outputBucketName,
                         Key: userID + "/" + fileName},
                         function(err, data) {
@@ -283,6 +310,7 @@ credentialsObtained.then(() => {
             console.error("Error deleting filtered image:", err);
             return;
           }
+          //console.log("time at s3 deletion is: ", Date.now()-startingTime);
         });
         console.log(`Image is ready!`);
       });

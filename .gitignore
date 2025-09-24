@@ -1,0 +1,7 @@
+node_modules/*
+*.png
+bucketRule*
+Black*
+Grayscale*
+*.jpg
+*.png
